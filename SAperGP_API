@@ -1,0 +1,56 @@
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
+
+import ast
+import os
+from pynput.keyboard import Key, Controller
+from time import sleep
+import pyautogui
+
+
+def main():
+    teams = ['Montreal Canadiens', 'Toronto Maple Leafs', 'Boston Bruins', 'New York Rangers', 'Chicago Blackhawks', 
+             'Detroit Red Wings', 'Los Angeles Kings', 'Dallas Stars', 'Philadelphia Flyers', 'Pittsburgh Penguins',
+             'St. Louis Blues', 'Buffalo Sabres', 'Vancouver Canucks', 'Calgary Flames', 'New York Islanders', 
+             'New Jersey Devils', 'Washington Capitals', 'Edmonton Oilers', 'Carolina Hurricanes', 'Colorado Avalanche',
+             'Arizona Coyotes', 'San Jose Sharks', 'Ottawa Senators', 'Tampa Bay Lightning', 'Anaheim Ducks', 
+             "Vegas Golden Knights", "Florida Panthers", "Columbus Blue Jackets", "Minnesota Wild", "Nashville Predators",
+             "Winnipeg Jets", "Seattle Kraken"]
+    
+    abvs = ["MTL", "TOR", "BOS", "NYR", "CHI",
+            "DET", "LAK", "DAL", "DET", "PIT",
+            "STL", "BUF", "VAN", "CGY", "NYI",
+            "NJD", "WSH", "EDM", "CAR", "COL",
+            "ARI", "SJS", "OTT", "TBL", "ANA",
+            "VGK", "FLA", "CBJ", "MIN", "NSH",
+            "WPG", "SEA"]
+    sagp_dic = {}
+
+    for i in range(len(teams)):
+        print(teams[i], abvs[i])
+        options = webdriver.ChromeOptions()
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+
+        search = teams[i].lower()
+        search = search.replace(" ", "-")
+
+        driver.get("https://www.statmuse.com/nhl/ask/" + search + "-home-shots-against-away-average-2024-season")
+
+        elements = driver.find_elements(By.TAG_NAME, "astro-island")
+        dic = elements[3].get_attribute("props")
+        dic = dic.replace('true', "True")
+        dic = ast.literal_eval(dic)
+
+        home_sagp = dic["data"][1]["rows"][1][0][1]["SA/GP"][1]["value"][1]
+        away_sagp = dic["data"][1]["rows"][1][1][1]["SA/GP"][1]["value"][1]
+
+        sagp_dic[abvs[i]] = [home_sagp, away_sagp]
+
+        driver.close()
+
+    print(sagp_dic)
+
+main()
