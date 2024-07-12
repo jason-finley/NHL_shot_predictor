@@ -1,3 +1,5 @@
+Passion Project
+
 The following programs are used to determine the amount of goals a particular NHL will have
 depending on the two teams playing and if the game is home or away. This is done with linear regression
 based on the data of previous games. Specifically, it assumes that the average shots allowed per games played
