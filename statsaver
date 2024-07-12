@@ -1,0 +1,116 @@
+# Import necessary libraries
+from bs4 import BeautifulSoup
+from urllib.request import urlopen
+from openpyxl import load_workbook
+import pandas as pd
+
+# Function to get game dates from StatMuse based on team
+def get_dates(team):
+    # List of teams and their abbreviations
+    teams = ['Montreal Canadiens', 'Toronto Maple Leafs', 'Boston Bruins', 'New York Rangers', 'Chicago Blackhawks', 
+             'Detroit Red Wings', 'Los Angeles Kings', 'Dallas Stars', 'Philadelphia Flyers', 'Pittsburgh Penguins',
+             'St. Louis Blues', 'Buffalo Sabres', 'Vancouver Canucks', 'Calgary Flames', 'New York Islanders', 
+             'New Jersey Devils', 'Washington Capitals', 'Edmonton Oilers', 'Carolina Hurricanes', 'Colorado Avalanche',
+             'Arizona Coyotes', 'San Jose Sharks', 'Ottawa Senators', 'Tampa Bay Lightning', 'Anaheim Ducks', 
+             "Vegas Golden Knights", "Florida Panthers", "Columbus Blue Jackets", "Minnesota Wild", "Nashville Predators",
+             "Winnipeg Jets", "Seattle Kraken"]
+    
+    abvs = ["MTL", "TOR", "BOS", "NYR", "CHI",
+            "DET", "LAK", "DAL", "DET", "PIT",
+            "STL", "BUF", "VAN", "CGY", "NYI",
+            "NJD", "WSH", "EDM", "CAR", "COL",
+            "ARI", "SJS", "OTT", "TBL", "ANA",
+            "VGK", "FLA", "CBJ", "MIN", "NSH",
+            "WPG", "SEA"]
+   
+    # Convert team name to StatMuse search format
+    search = teams[abvs.index(team)].lower().replace(' ', '-')
+    url = urlopen("https://www.statmuse.com/nhl/ask/" + search + "-each-game")
+
+    content = url.read()
+    soup = BeautifulSoup(content, 'html.parser')
+
+    # Find all links on the page
+    table = soup.findAll('a', href=True)
+    unfdates = []
+    # Extract relevant dates from links
+    for x in table:
+        if len(str(x['href'])) > 11:
+            if str(x['href'])[11] == "-":
+                unfdates.append(x['href'])
+
+    dates = []
+    # Pick alternate links as game dates
+    for i in range(len(unfdates)):
+        if i % 2 == 0:
+            dates.append(unfdates[i])
+
+    # Remove unnecessary dates
+    del dates[-3:]
+    
+    return dates
+
+
+# Function to fetch specific stats from each game page
+def new(href):    
+    print("https://www.statmuse.com" + href)
+    url = urlopen("https://www.statmuse.com" + href)
+    content = url.read()
+    soup = BeautifulSoup(content, 'html.parser')
+
+    # Extract specific statistics from the page
+    table = soup.findAll('p',attrs={"class":"w-[85px] sm:w-24 py-2.5 text-center font-semibold border-b border-[#e4e4e4] whitespace-nowrap overflow-hidden text-ellipsis"})
+    
+    stats = []
+    for x in table:
+        stats.append(x.text)
+    
+    # Adjusting format if necessary
+    if stats[0] != " Blues ":
+        switch_stats = []
+        for i in range(10):
+            switch_stats.append(stats[2*i+1])
+            switch_stats.append(stats[2*i])
+        stats = switch_stats
+
+    # Extract relevant stats
+    restats = []
+    restats.append(stats[6])
+    restats.append(stats[7])
+    for stat in stats[12:]:
+        restats.append(stat)
+
+    return restats
+
+
+# Function to write fetched stats into Excel sheet
+def write(stats, sheet, row):    
+    col = 0
+    for stat in stats:
+        cell = sheet.cell(row=row*2 + 2, column=col + 16)
+        cell.value = stat
+        col += 1
+    
+
+
+def main():
+    team = "STL"
+    dates = get_dates(team)
+
+    # Load the Excel workbook
+    book = load_workbook("stats_NHL.xlsx")
+    sheet = book[team]
+
+    i = 0
+    # Fetch stats for each game date and write to Excel
+    for date in dates:
+        stats = new(date) # pim, face, hits, gives, takes
+        print(stats)
+        write(stats, sheet, int(i))
+        i += 1
+
+    # Save the updated workbook
+    book.save("stats_NHL.xlsx")
+
+# Execute main function
+main()
